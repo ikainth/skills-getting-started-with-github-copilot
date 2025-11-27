@@ -19,7 +19,12 @@ document.addEventListener("DOMContentLoaded", () => {
         activityCard.className = "activity-card";
 
         const spotsLeft = details.max_participants - details.participants.length;
-        const participantsList = details.participants.map(p => `<li>${p}</li>`).join('');
+        const participantsList = details.participants.map(p => `
+          <li class="participant-item">
+            <span class="participant-email">${p}</span>
+            <button class="delete-btn" data-activity="${name}" data-email="${p}" title="Remove participant">✕</button>
+          </li>
+        `).join('');
 
         activityCard.innerHTML = `
           <h4>${name}</h4>
@@ -41,6 +46,36 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+      });
+
+      // Add event delegation for delete buttons
+      activitiesList.addEventListener("click", async (event) => {
+        if (event.target.classList.contains("delete-btn")) {
+          const activityName = event.target.dataset.activity;
+          const email = event.target.dataset.email;
+
+          try {
+            const response = await fetch(
+              `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`,
+              {
+                method: "DELETE",
+              }
+            );
+
+            if (response.ok) {
+              // Remove the participant item from the DOM
+              event.target.closest(".participant-item").remove();
+              // Optionally show success message
+              console.log(`${email} removed from ${activityName}`);
+            } else {
+              const error = await response.json();
+              alert(`Error: ${error.detail}`);
+            }
+          } catch (error) {
+            console.error("Error unregistering:", error);
+            alert("Failed to unregister participant. Please try again.");
+          }
+        }
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
